@@ -1,0 +1,16 @@
+taichi==1.2.2
+numpy==1.23.1
+matplotlib
+tqdm
+pandas
+absl-py
+autopep8
+dm-tree
+pyevtk
+pytest
+torch
+torch_geometric==2.4.0
+torch_sparse
+torch_scatter
+torch-cluster
+toml

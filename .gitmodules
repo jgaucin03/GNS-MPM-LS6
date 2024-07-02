@@ -1,0 +1,8 @@
+[submodule "gns"]
+	path = gns
+	url = https://github.com/geoelements/gns
+	branch = main
+[submodule "taichi_mpm_water"]
+	path = taichi_mpm_water
+	url = https://github.com/yjchoi1/taichi_mpm
+	branch = main
