@@ -1,0 +1,11 @@
+# Exclude these directories and files
+gns/gns-samples/WaterBarrier/
+gns/gns-samples/BarrierInteraction/
+gns/gns-samples/Sand/
+gns/gns-samples/12-gnn.ipynb
+
+# Ignore __pycache__ directories
+__pycache__/
+
+# Ignore any hidden files
+.*
