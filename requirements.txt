@@ -14,3 +14,4 @@ torch_sparse
 torch_scatter
 torch-cluster
 toml
+open3d

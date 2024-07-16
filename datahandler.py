@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 from tqdm import tqdm
+import open3d as o3d
 
 class TrajectoryDataHandler:
     def __init__(self, npz_directory):
@@ -34,21 +35,21 @@ class TrajectoryDataHandler:
         print(f"First particle positions: {positions[:1]}")
         print()
 
-        return n_timesteps * n_particles, n_particles
+        return n_particles
 
     def inspect_npz_file(self, file_name):
         file_path = os.path.join(self.npz_directory, file_name)
         data = self.load_npz(file_path)
 
-        total_samples = 0
+        total_samples = 0 # Total samples in data_loader.py is the number of particles across each trajectory not counting input sequence length
         num_particles_list = []
 
         for key in data.files:
-            num_samples, num_particles = self.inspect_trajectory(data, key)
+            num_particles = self.inspect_trajectory(data, key)
             total_samples += num_samples
             num_particles_list.append(num_particles)
 
-        print(f"Total samples: {total_samples}")
+        print(f"Total samples (Particles across each trajectory): {total_samples}")
 
         # Plotting the number of particles for each trajectory
         """ plt.figure(figsize=(10, 6))
@@ -167,21 +168,175 @@ class TrajectoryDataHandler:
         with open(metadata_file_path, "w") as fp:
             json.dump(metadata, fp)
         print(f"metadata saved at: {metadata_file_path}")
+        
+class PointcloudDataHandler:
+    def __init__(self, pc_directory):
+        self.pc_directory = pc_directory
+        
+    # Inspect values of the pointcloud
+    def inspect_pointcloud(self, filename):
+        # Read the pointcloud file
+        pc_path = os.path.join(self.pc_directory, filename)
+        if not os.path.exists(pc_path):
+            raise ValueError(f"Pointcloud file {pc_path} does not exist.")
+        pcd = o3d.io.read_point_cloud(pc_path)
+        points = np.asarray(pcd.points)
 
+        # Find the max and min values for x, y, and z
+        min_vals = points.min(axis=0)
+        max_vals = points.max(axis=0)
+        num_points = points.shape[0]
+
+        print(f"Minimum values: {min_vals}")
+        print(f"Maximum values: {max_vals}")
+        print(f"Number of points: {num_points}")
+    
+    # Center the pointcloud within a given domain 
+    def center_pc(self, filename, domain_size):
+        pc_path = os.path.join(self.pc_directory, filename)
+        if not os.path.exists(pc_path):
+            raise ValueError(f"Pointcloud file {pc_path} does not exist.")
+        
+        # Read the pointcloud file
+        pcd = o3d.io.read_point_cloud(pc_path)
+        points = np.asarray(pcd.points)
+
+        # Calculate the centroid of the pointcloud
+        centroid = points.mean(axis=0)
+
+        # Calculate the domain center
+        domain_center = np.array([np.mean(d) for d in domain_size])
+
+        # Center the pointcloud
+        centered_points = points - centroid + domain_center
+
+        # Create a new point cloud with the centered points
+        centered_pcd = o3d.geometry.PointCloud()
+        centered_pcd.points = o3d.utility.Vector3dVector(centered_points)
+
+        # Save the centered pointcloud to a new .ply file
+        base, ext = os.path.splitext(pc_path)
+        centered_pc_path = f"{base}-centered{ext}"
+        o3d.io.write_point_cloud(centered_pc_path, centered_pcd, write_ascii=True)
+        
+        print(f"Centered pointcloud saved to: {centered_pc_path}")
+        return centered_pc_path
+    
+    # Scale the pointcloud to a specified percentage of its original size
+    def scale_pc(self, filename, scale_percentage):
+        pc_path = os.path.join(self.pc_directory, filename)
+        if not os.path.exists(pc_path):
+            raise ValueError(f"Pointcloud file {pc_path} does not exist.")
+
+        # Read the pointcloud file
+        pcd = o3d.io.read_point_cloud(pc_path)
+        points = np.asarray(pcd.points)
+
+        # Calculate the centroid of the pointcloud
+        centroid = points.mean(axis=0)
+
+        # Scale the pointcloud
+        scaled_points = (points - centroid) * scale_percentage + centroid
+
+        # Create a new point cloud with the scaled points
+        scaled_pcd = o3d.geometry.PointCloud()
+        scaled_pcd.points = o3d.utility.Vector3dVector(scaled_points)
+
+        # Save the scaled pointcloud to a new .ply file
+        base, ext = os.path.splitext(pc_path)
+        scaled_pc_path = f"{base}-scaled{ext}"
+        o3d.io.write_point_cloud(scaled_pc_path, scaled_pcd, write_ascii=True)
+        
+        print(f"Scaled pointcloud saved to: {scaled_pc_path}")
+        return scaled_pc_path
+        
+    # Preprocess pointcloud to fit inside of MPM simulation domain
+    def preprocess_pointcloud(self, filename, output_path, domain_size, target_occupancy=0.4):
+        # Join the directory and filename
+        pc_path = os.path.join(self.pc_directory, filename)
+        if not os.path.exists(pc_path):
+            raise ValueError(f"Pointcloud file {pc_path} does not exist.")
+        
+        # Read the point cloud
+        pcd = o3d.io.read_point_cloud(pc_path)
+        
+        # Remove outliers
+        cl, ind = pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
+        pcd = pcd.select_by_index(ind)
+
+        # Calculate initial properties
+        bbox = pcd.get_axis_aligned_bounding_box()
+        current_dimensions = bbox.get_extent()
+        centroid = bbox.get_center()
+        
+        print(f"Current bounding box: {bbox}")
+        print(f"Current dimensions: {current_dimensions}")
+        print(f"Current centroid: {centroid}")
+
+        # Rotate the point cloud 90 degrees about the y-axis
+        R = pcd.get_rotation_matrix_from_xyz((np.pi / 2, np.pi, 0))
+        pcd.rotate(R, center=centroid)
+
+        # Calculate target dimensions (40% of domain size)
+        domain_extent = np.array([d[1] - d[0] for d in domain_size])
+        target_dimensions = domain_extent * target_occupancy
+
+        # Determine scaling factor
+        scaling_factors = target_dimensions / current_dimensions
+        scale_factor = min(scaling_factors)
+
+        # Scale the point cloud
+        pcd.scale(scale_factor, center=centroid)
+
+        # Move the point cloud to the ground (lowest y value to the lowest y value of the domain)
+        bbox = pcd.get_axis_aligned_bounding_box()
+        min_bound = bbox.get_min_bound()
+        translation = [0, domain_size[1][0] - min_bound[1], 0]
+        pcd.translate(translation)
+
+        # Recalculate properties after rotation, scaling, and translation
+        bbox = pcd.get_axis_aligned_bounding_box()
+        current_dimensions = bbox.get_extent()
+        centroid = bbox.get_center()
+        
+        print(f"Bounding box after rotation, scaling, and translation: {bbox}")
+        print(f"Dimensions after rotation, scaling, and translation: {current_dimensions}")
+        print(f"Centroid after rotation, scaling, and translation: {centroid}")
+
+        # Center the point cloud in the domain horizontally
+        new_centroid = np.mean(domain_size, axis=1)
+        translation = [new_centroid[0] - centroid[0], 0, new_centroid[2] - centroid[2]]
+        pcd.translate(translation)
+
+        print(f"Final bounding box: {pcd.get_axis_aligned_bounding_box()}")
+        print(f"Final dimensions: {bbox.get_extent()}")
+        print(f"Final centroid: {new_centroid}")
+        
+        # Save the preprocessed point cloud
+        o3d.io.write_point_cloud(output_path, pcd, write_ascii=True)
+
+    
 # Example usage
 if __name__ == "__main__":
-    npz_directory = "/scratch/10029/jgaucin/taichi_mpm_water/saved"
+    #npz_directory = "/scratch/10029/jgaucin/taichi_mpm_water/saved"
     # Initialize instance of data handler using base directory {npz_directory}
-    handler = TrajectoryDataHandler(npz_directory)
+    #handler = TrajectoryDataHandler(npz_directory)
 
     # Inspect a specific .npz file
-    handler.inspect_npz_file("train.npz")
+    #handler.inspect_npz_file("train.npz")
 
     # Merge trajectories into a single .npz file
     # handler.merge_trajectories("train.npz", num_trajectories=10)
 
     # Calculate and save metadata
-    handler.calc_metadata("metadata", num_trajectories=100)
+    #handler.calc_metadata("metadata", num_trajectories=100)
     # Necessary metadata (9):
     # {"bounds","sequence_length", "default_connectivity_radius","dim", "dt", "vel_mean", "vel_std", "acc_mean", "acc_std"}
     # Note: In GNS train.py sequence_length not necessary but recommended and dt is not necessary, only describing MPM simulation timesteps.
+    
+    PC_Directory = "/scratch/10029/jgaucin/gns-mpm-ls6/point-e"
+    pcdh = PointcloudDataHandler(PC_Directory)
+    pc_name = "reservoir.ply"
+    pcdh.inspect_pointcloud(pc_name)
+    domain = [[0.1,0.9],[0.1,0.9],[0.1,0.9]]
+    pcdh.preprocess_pointcloud(pc_name, f"/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2/{pc_name}", domain, 0.4)
