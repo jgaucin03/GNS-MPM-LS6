@@ -1,0 +1,175 @@
+{
+    "save_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/saved",
+    "id_range": [
+        0,
+        10
+    ],
+    "domain_size": 2.0,
+    "friction_angle": 40,
+    "wall_friction": 0.5,
+    "elastic_modulus": 2000000.0,
+    "poisson_ratio": 0.3,
+    "rho": 1000,
+    "sim_space": [
+        [
+            0.1,
+            1.9
+        ],
+        [
+            0.1,
+            1.9
+        ],
+        [
+            0.1,
+            1.9
+        ]
+    ],
+    "sim_resolution": [
+        32,
+        32,
+        32
+    ],
+    "nsteps": 500,
+    "mpm_dt": 0.0025,
+    "gravity": [
+        0,
+        -9.81,
+        0
+    ],
+    "gen_cube_randomly": {
+        "generate": true,
+        "sim_inputs": {
+            "mass": {
+                "ncubes": [
+                    2,
+                    5
+                ],
+                "min_distance_between_cubes": 0.01,
+                "cube_size_range": [
+                    0.2,
+                    0.39
+                ],
+                "cube_gen_space": [
+                    [
+                        0.11,
+                        1.01
+                    ],
+                    [
+                        0.11,
+                        1.89
+                    ],
+                    [
+                        0.11,
+                        1.89
+                    ]
+                ],
+                "vel_range": [
+                    [
+                        -2.5,
+                        2.5
+                    ],
+                    [
+                        -2.5,
+                        2.5
+                    ],
+                    [
+                        -2.5,
+                        2.5
+                    ]
+                ],
+                "nparticle_limits": 30000
+            },
+            "obstacles": {
+                "ncubes": [
+                    3,
+                    5
+                ],
+                "min_distance_between_cubes": 0.01,
+                "cube_size_range": [
+                    [
+                        0.1,
+                        0.1
+                    ],
+                    [
+                        0.35,
+                        0.35
+                    ],
+                    [
+                        0.1,
+                        0.1
+                    ]
+                ],
+                "cube_gen_space": [
+                    [
+                        1.01,
+                        1.89
+                    ],
+                    [
+                        0.1,
+                        1.05
+                    ],
+                    [
+                        0.11,
+                        1.89
+                    ]
+                ],
+                "vel_range": [
+                    -2.5,
+                    2.5
+                ],
+                "nparticle_limits": 14000
+            }
+        }
+    },
+    "gen_cube_from_data": {
+        "generate": false,
+        "sim_inputs": [
+            {
+                "id": 0,
+                "mass": {
+                    "cubes": [
+                        [
+                            0.5,
+                            0.11,
+                            0.2,
+                            0.5,
+                            0.2,
+                            0.5
+                        ]
+                    ],
+                    "velocity_for_cubes": [
+                        [
+                            1.0,
+                            1.0,
+                            1.5
+                        ]
+                    ]
+                },
+                "obstacles": {
+                    "cubes": [
+                        [
+                            1.0,
+                            0.1,
+                            0.45,
+                            0.1,
+                            0.5,
+                            0.1
+                        ]
+                    ],
+                    "velocity_for_cubes": [
+                        [
+                            0.0,
+                            0.0,
+                            0.0
+                        ]
+                    ]
+                }
+            }
+        ]
+    },
+    "visualization": {
+        "is_realtime_vis": false,
+        "is_save_animation": true,
+        "skip": 1
+    }
+}
