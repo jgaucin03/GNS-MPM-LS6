@@ -1,8 +1,8 @@
 {
-    "save_path": "/scratch/10029/jgaucin/gns-mpm-ls6/gns/gns-samples/WaterBarrier/dataset",
+    "save_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2",
     "id_range": [
         0,
-        100
+        1
     ],
     "domain_size": 1.0,
     "friction_angle": 40,
@@ -29,11 +29,11 @@
         32,
         32
     ],
-    "nsteps": 350,
+    "nsteps": 500,
     "mpm_dt": 0.0025,
     "gravity": [0, -9.81, 0],
     "gen_cube_randomly": {
-        "generate": true,
+        "generate": false,
         "sim_inputs": {
             "mass": {
                 "ncubes": [1, 2],
@@ -88,10 +88,38 @@
             }
         ]
     },
+    "gen_rigid_body_from_data": {
+        "generate": true,
+        "sim_inputs": [ 
+            { "id": 0,
+            "mass":{ 
+                "cubes": [
+                    [0.11,
+                    0.3,
+                    0.11,
+                    0.3,
+                    0.11,
+                    0.3]
+                    ],
+                "velocity_for_cubes": [
+                    [1.0,
+                    1.0,
+                    1.5]
+                ]
+                },
+                "obstacles": {
+                    "pc_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2/reservoir.ply",
+                    "velocity_for_obstacle": [
+                        [0.0, 0.0, 0.0]
+                    ]
+                }    
+    }
+    ]
+    },
     "visualization": {
         "is_realtime_vis": false,
         "is_save_animation": true,
-        "skip": 20
+        "skip": 1
     }
 }
 

@@ -22,8 +22,7 @@ from gns import data_loader
 from gns import distribute
 
 # Jonathan Gaucin User Personal Comment: Epochs is calculated by number of samples in training data / batch size
-# Batch size is how each trajectory is split up into
-# Number of samples is number of particles * number of timesteps for one trajectory.
+# Batch size is how each trajectory is 2 by deafult, each batch includes two trajectories, loss is averaged from each moving particle over time
 
 flags.DEFINE_enum(
     'mode', 'train', ['train', 'valid', 'rollout'],

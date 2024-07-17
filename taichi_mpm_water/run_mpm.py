@@ -40,10 +40,12 @@ def run_collision(i, inputs, follow_taichi_coord, args):
     # init MPM solver
     ti.init(arch=ti.cuda, device_memory_GB=3.4)
     mpm = MPMSolver(inputs=inputs, res=sim_resolution, size=domain_size)
-
-    if inputs["gen_cube_from_data"]["generate"] == inputs["gen_cube_randomly"]["generate"]:
-        raise NotImplemented(
-            "Cube generation method should either be one of `gen_cube_from_data` or `gen_cube_randomly`")
+    
+    # Find if exactly one option was chosen of the three generation methods
+    if sum([inputs["gen_cube_from_data"]["generate"], 
+            inputs["gen_cube_randomly"]["generate"], 
+            inputs["gen_rigid_body_from_data"]["generate"]]) != 1:
+        raise ValueError("Exactly one cube generation method should be selected: `gen_cube_from_data`, `gen_cube_randomly`, or `gen_rigid_body_from_data`.")
 
     # Gen cubes from data
     if inputs["gen_cube_from_data"]["generate"]:
@@ -103,11 +105,20 @@ def run_collision(i, inputs, follow_taichi_coord, args):
                 max_particles=nparticle_limits)
         else:
             obstacles = None
+    # Gen rigid body from pointcloud
+    elif inputs["gen_rigid_body_from_data"]["generate"]:
+        sim_input = next(item for item in inputs["gen_rigid_body_from_data"]["sim_inputs"] if item["id"] == i)
+        # Mass regarding soft mass
+        cubes = sim_input["mass"]["cubes"]
+        velocity_for_cubes = sim_input["mass"]["velocity_for_cubes"]
+        # Read in the custom obstacle file path
+        obstacles = [sim_input["obstacles"]["pc_path"]] if "obstacles" in sim_input else None
+        
     else:
         raise ValueError("Check `generate` option. It should be either true or false")
 
     # TODO: need overlap check between `cubes` and `obstacles`.
-
+    # Make particle cubes
     for idx, cube in enumerate(cubes):
         if type(cube) is list or type(cube) is tuple:
             particles_to_add = cube
@@ -128,18 +139,19 @@ def run_collision(i, inputs, follow_taichi_coord, args):
     n_soil_particles = mpm.particle_info()["position"].shape[0]
     particle_type_soil = np.full(n_soil_particles, 6) # TODO: Change particle type to be water () not sand (6). Unless trivial change
 
-    # Create obstacles 
+    # Make obstacles cubes in MPM
     if obstacles is not None:
         for idx, cube in enumerate(obstacles):
             if type(cube) is list or type(cube) is tuple:
                 particles_to_add = cube
+            # Use this flag to read in custom data (string: file path)
             elif type(cube) is str:
                 particle_file_name = cube
                 particles_to_add = os.path.join(save_path, particle_file_name)
             else:
                 raise ValueError("Wrong input type for particle gen")
-
-            utils.add_material_points(
+            print(f"Adding particles from: {particles_to_add}")  # Debugging print
+            utils.add_pc_material_points(
                 mpm_solver=mpm,
                 ndim=ndim,
                 particles_to_add=particles_to_add,
@@ -293,8 +305,8 @@ if __name__ == "__main__":
     # input
     input_path = args.input_path
     follow_taichi_coord = True
-    f = open(input_path)
-    inputs = json.load(f)
+    with open(input_path) as f:
+        inputs = json.load(f)
     f.close()
 
     # save input file being used.
@@ -305,4 +317,4 @@ if __name__ == "__main__":
         json.dump(inputs, input_file, indent=4)
 
     for i in range(inputs["id_range"][0], inputs["id_range"][1]):
-        data = run_collision(i, inputs)
+        data = run_collision(i, inputs, follow_taichi_coord, args)
