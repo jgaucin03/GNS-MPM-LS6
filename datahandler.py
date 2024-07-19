@@ -172,6 +172,22 @@ class TrajectoryDataHandler:
 class PointcloudDataHandler:
     def __init__(self, pc_directory):
         self.pc_directory = pc_directory
+
+    def create_ply(self, file_path):
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        ply_header = """ply
+                    format ascii 1.0
+                    element vertex 0
+                    property float x
+                    property float y
+                    property float z
+                    end_header
+                    """
+        with open(file_path, 'w') as f:
+            f.write(ply_header)
+        print(f"Empty .ply file created at: {file_path}")
         
     # Inspect values of the pointcloud
     def inspect_pointcloud(self, filename):
@@ -249,9 +265,46 @@ class PointcloudDataHandler:
         
         print(f"Scaled pointcloud saved to: {scaled_pc_path}")
         return scaled_pc_path
+    
+    def downsample_ply(self, filename, target_number_of_points=5000):
+        pc_path = os.path.join(self.pc_directory, filename)
+        if not os.path.exists(pc_path):
+            raise ValueError(f"Pointcloud file {pc_path} does not exist.")
         
+        # Load the point cloud from the PLY file
+        pcd = o3d.io.read_point_cloud(pc_path)
+        
+        # Get the total number of points in the original point cloud
+        original_points = np.asarray(pcd.points).shape[0]
+        
+        # Estimate initial voxel size (this is a rough estimation and might need adjustment)
+        voxel_size = (pcd.get_max_bound() - pcd.get_min_bound()).max() * (original_points / target_number_of_points) ** (1/3)
+        
+        # Downsample the point cloud
+        downsampled_pcd = pcd.voxel_down_sample(voxel_size)
+        
+        minimum_threshold = 0.0005  # Minimum voxel size
+        # After initial downsampling
+        if np.asarray(downsampled_pcd.points).shape[0] < target_number_of_points:
+            while np.asarray(downsampled_pcd.points).shape[0] < target_number_of_points:
+                voxel_size *= 0.9  # Decrease voxel size by 10%
+                downsampled_pcd = pcd.voxel_down_sample(voxel_size)
+                if voxel_size < minimum_threshold:  # Prevent voxel size from becoming too small
+                    break
+        # Optionally, save the downsampled point cloud to a new PLY file
+        file = os.path.splitext(pc_name)[0]
+        down_filename = f"{file}-downsampled.ply"
+        output_path = os.path.join(self.pc_directory, down_filename)
+        self.create_ply(output_path)
+        o3d.io.write_point_cloud(output_path, downsampled_pcd, write_ascii=True)
+    
+        return down_filename
+    
     # Preprocess pointcloud to fit inside of MPM simulation domain
     def preprocess_pointcloud(self, filename, output_path, domain_size, target_occupancy=0.4):
+        # Temporary flag to allow for custom rotation manually coded in
+        point_e_rotation = False
+        
         # Join the directory and filename
         pc_path = os.path.join(self.pc_directory, filename)
         if not os.path.exists(pc_path):
@@ -273,8 +326,13 @@ class PointcloudDataHandler:
         print(f"Current dimensions: {current_dimensions}")
         print(f"Current centroid: {centroid}")
 
-        # Rotate the point cloud 90 degrees about the y-axis
-        R = pcd.get_rotation_matrix_from_xyz((np.pi / 2, np.pi, 0))
+        if point_e_rotation:
+            # Rotate the point cloud 90 degrees about the y-axis, and 180 about x-axis (Point-E)
+            R = pcd.get_rotation_matrix_from_xyz((np.pi / 2, np.pi, 0))
+        else:
+            # Custom rotation
+            R = pcd.get_rotation_matrix_from_xyz((0, 0, np.pi))
+            
         pcd.rotate(R, center=centroid)
 
         # Calculate target dimensions (40% of domain size)
@@ -312,8 +370,11 @@ class PointcloudDataHandler:
         print(f"Final dimensions: {bbox.get_extent()}")
         print(f"Final centroid: {new_centroid}")
         
+        # Create an empty.ply file
+        self.create_ply(output_path)
         # Save the preprocessed point cloud
         o3d.io.write_point_cloud(output_path, pcd, write_ascii=True)
+    
 
     
 # Example usage
@@ -333,10 +394,13 @@ if __name__ == "__main__":
     # Necessary metadata (9):
     # {"bounds","sequence_length", "default_connectivity_radius","dim", "dt", "vel_mean", "vel_std", "acc_mean", "acc_std"}
     # Note: In GNS train.py sequence_length not necessary but recommended and dt is not necessary, only describing MPM simulation timesteps.
-    
-    PC_Directory = "/scratch/10029/jgaucin/gns-mpm-ls6/point-e"
+    Downsample = True
+    PC_Directory = "/scratch/10029/jgaucin/gns-mpm-ls6/point-e/generated_pc"
     pcdh = PointcloudDataHandler(PC_Directory)
-    pc_name = "reservoir.ply"
+    pc_name = "water_bottle_sfm.ply"
     pcdh.inspect_pointcloud(pc_name)
+    if Downsample:
+        pc_name = pcdh.downsample_ply(pc_name)
     domain = [[0.1,0.9],[0.1,0.9],[0.1,0.9]]
-    pcdh.preprocess_pointcloud(pc_name, f"/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2/{pc_name}", domain, 0.4)
+    output_path = f"/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2/{pc_name}"
+    pcdh.preprocess_pointcloud(pc_name, output_path, domain, 0.4)

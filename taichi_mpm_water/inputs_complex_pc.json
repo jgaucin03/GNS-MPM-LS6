@@ -108,7 +108,7 @@
                 ]
                 },
                 "obstacles": {
-                    "pc_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2/reservoir.ply",
+                    "pc_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2/water_bottle_sfm-downsampled.ply",
                     "velocity_for_obstacle": [
                         [0.0, 0.0, 0.0]
                     ]
