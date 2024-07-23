@@ -1,10 +1,10 @@
 {
-    "save_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2",
+    "save_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc_motor_up",
     "id_range": [
         0,
         1
     ],
-    "domain_size": 1.0,
+    "domain_size": 2.0,
     "friction_angle": 40,
     "wall_friction": 0.5,
     "elastic_modulus": 2000000.0,
@@ -13,15 +13,15 @@
     "sim_space": [
         [
             0.1,
-            0.9
+            1.9
         ],
         [
             0.1,
-            0.9
+            1.9
         ],
         [
             0.1,
-            0.9
+            1.9
         ]
     ],
     "sim_resolution": [
@@ -88,11 +88,11 @@
             }
         ]
     },
-    "gen_rigid_body_from_data": {
+    "gen_from_pc": {
         "generate": true,
         "sim_inputs": [ 
             { "id": 0,
-            "mass":{ 
+            "mass":  { 
                 "cubes": [
                     [0.11,
                     0.3,
@@ -107,14 +107,20 @@
                     1.5]
                 ]
                 },
-                "obstacles": {
-                    "pc_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2/water_bottle_sfm-downsampled.ply",
-                    "velocity_for_obstacle": [
-                        [0.0, 0.0, 0.0]
-                    ]
-                }    
-    }
-    ]
+                "obstacles": [
+                    {
+                        "pc_path": "/scratch/10029/jgaucin/gns-mpm-ls6/point-e/generated_pc/red_motor_size_up_rm.ply",
+                        "elastic": false,
+                        "velocity_for_obstacle": [0.0, 0.0, 0.0]
+                    },
+                    {
+                        "pc_path": "/scratch/10029/jgaucin/gns-mpm-ls6/point-e/generated_pc/red_motor_size_up_tire.ply",
+                        "elastic": true,
+                        "velocity_for_obstacle": [0.0,0.0,0.0]
+                    }
+                ]    
+            }
+        ]
     },
     "visualization": {
         "is_realtime_vis": false,

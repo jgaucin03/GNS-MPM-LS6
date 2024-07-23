@@ -301,10 +301,7 @@ class PointcloudDataHandler:
         return down_filename
     
     # Preprocess pointcloud to fit inside of MPM simulation domain
-    def preprocess_pointcloud(self, filename, output_path, domain_size, target_occupancy=0.4):
-        # Temporary flag to allow for custom rotation manually coded in
-        point_e_rotation = False
-        
+    def preprocess_pointcloud(self, filename, output_path, domain_size, target_occupancy=0.4, point_e_rotation=False):
         # Join the directory and filename
         pc_path = os.path.join(self.pc_directory, filename)
         if not os.path.exists(pc_path):
@@ -394,13 +391,13 @@ if __name__ == "__main__":
     # Necessary metadata (9):
     # {"bounds","sequence_length", "default_connectivity_radius","dim", "dt", "vel_mean", "vel_std", "acc_mean", "acc_std"}
     # Note: In GNS train.py sequence_length not necessary but recommended and dt is not necessary, only describing MPM simulation timesteps.
-    Downsample = True
+    Downsample = False
     PC_Directory = "/scratch/10029/jgaucin/gns-mpm-ls6/point-e/generated_pc"
     pcdh = PointcloudDataHandler(PC_Directory)
-    pc_name = "water_bottle_sfm.ply"
+    pc_name = "red_motor0.ply"
     pcdh.inspect_pointcloud(pc_name)
     if Downsample:
         pc_name = pcdh.downsample_ply(pc_name)
     domain = [[0.1,0.9],[0.1,0.9],[0.1,0.9]]
     output_path = f"/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2/{pc_name}"
-    pcdh.preprocess_pointcloud(pc_name, output_path, domain, 0.4)
+    pcdh.preprocess_pointcloud(pc_name, output_path, domain, 0.6, True)

@@ -44,8 +44,8 @@ def run_collision(i, inputs, follow_taichi_coord, args):
     # Find if exactly one option was chosen of the three generation methods
     if sum([inputs["gen_cube_from_data"]["generate"], 
             inputs["gen_cube_randomly"]["generate"], 
-            inputs["gen_rigid_body_from_data"]["generate"]]) != 1:
-        raise ValueError("Exactly one cube generation method should be selected: `gen_cube_from_data`, `gen_cube_randomly`, or `gen_rigid_body_from_data`.")
+            inputs["gen_from_pc"]["generate"]]) != 1:
+        raise ValueError("Exactly one cube generation method should be selected: `gen_cube_from_data`, `gen_cube_randomly`, or `gen_from_pc`.")
 
     # Gen cubes from data
     if inputs["gen_cube_from_data"]["generate"]:
@@ -105,15 +105,14 @@ def run_collision(i, inputs, follow_taichi_coord, args):
                 max_particles=nparticle_limits)
         else:
             obstacles = None
-    # Gen rigid body from pointcloud
-    elif inputs["gen_rigid_body_from_data"]["generate"]:
-        sim_input = next(item for item in inputs["gen_rigid_body_from_data"]["sim_inputs"] if item["id"] == i)
+    # Gen bodies from a pointcloud
+    elif inputs["gen_from_pc"]["generate"]:
+        sim_input = next(item for item in inputs["gen_from_pc"]["sim_inputs"] if item["id"] == i)
         # Mass regarding soft mass
         cubes = sim_input["mass"]["cubes"]
         velocity_for_cubes = sim_input["mass"]["velocity_for_cubes"]
         # Read in the custom obstacle file path
-        obstacles = [sim_input["obstacles"]["pc_path"]] if "obstacles" in sim_input else None
-        
+        obstacles = sim_input["obstacles"] if "obstacles" in sim_input else None
     else:
         raise ValueError("Check `generate` option. It should be either true or false")
 
@@ -142,21 +141,38 @@ def run_collision(i, inputs, follow_taichi_coord, args):
     # Make obstacles cubes in MPM
     if obstacles is not None:
         for idx, cube in enumerate(obstacles):
-            if type(cube) is list or type(cube) is tuple:
-                particles_to_add = cube
-            # Use this flag to read in custom data (string: file path)
-            elif type(cube) is str:
-                particle_file_name = cube
-                particles_to_add = os.path.join(save_path, particle_file_name)
+            # If we are following the new structure for pointcloud inputs
+            if isinstance(cube, dict):
+                # Handle the new structure: a dictionary with pc_path, elastic, and velocity_for_obstacle
+                pc_path = cube["pc_path"]
+                is_elastic = cube["elastic"]
+                velocity = cube["velocity_for_obstacle"]
+                
+                print(f"Adding particles from: {pc_path}, Elastic: {is_elastic}, Velocity: {velocity}") # Debugging print
+                
+                # Call the appropriate function to add the obstacle particles
+                utils.add_pc_material_points(
+                    mpm_solver=mpm,
+                    ndim=ndim,
+                    particles_to_add=pc_path,
+                    material=MPMSolver.material_elastic if is_elastic else MPMSolver.material_stationary,
+                    velocity=velocity)
             else:
-                raise ValueError("Wrong input type for particle gen")
-            print(f"Adding particles from: {particles_to_add}")  # Debugging print
-            utils.add_pc_material_points(
-                mpm_solver=mpm,
-                ndim=ndim,
-                particles_to_add=particles_to_add,
-                material=MPMSolver.material_stationary, # Obstacles are Rigid (stationary) particles
-                velocity=[0, 0, 0] if ndim == 3 else [0, 0])
+                if type(cube) is list or type(cube) is tuple:
+                    particles_to_add = cube
+                # Use this flag to read in custom data (string: file path)
+                elif type(cube) is str:
+                    particle_file_name = cube
+                    particles_to_add = os.path.join(save_path, particle_file_name)
+                else:
+                    raise ValueError("Wrong input type for particle gen")
+                print(f"Adding particles from: {particles_to_add}")  # Debugging print
+                utils.add_pc_material_points(
+                    mpm_solver=mpm,
+                    ndim=ndim,
+                    particles_to_add=particles_to_add,
+                    material=MPMSolver.material_stationary, # Obstacles are Rigid (stationary) particles
+                    velocity=[0, 0, 0] if ndim == 3 else [0, 0])
 
         # Make particle type array
         n_entire_particles = mpm.particle_info()["position"].shape[0]
