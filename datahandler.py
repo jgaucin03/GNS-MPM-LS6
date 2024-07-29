@@ -32,7 +32,6 @@ class TrajectoryDataHandler:
         print(f"Number of dimensions: {n_dims}")
         print(f"Particle types shape: {particle_types.shape}")
         print(f"First few particle types: {particle_types[:10]}")
-        print(f"First particle positions: {positions[:1]}")
         print()
 
         return n_particles
@@ -46,7 +45,7 @@ class TrajectoryDataHandler:
 
         for key in data.files:
             num_particles = self.inspect_trajectory(data, key)
-            total_samples += num_samples
+            total_samples += num_particles
             num_particles_list.append(num_particles)
 
         print(f"Total samples (Particles across each trajectory): {total_samples}")
@@ -376,28 +375,32 @@ class PointcloudDataHandler:
     
 # Example usage
 if __name__ == "__main__":
-    #npz_directory = "/scratch/10029/jgaucin/taichi_mpm_water/saved"
-    # Initialize instance of data handler using base directory {npz_directory}
-    #handler = TrajectoryDataHandler(npz_directory)
+    NPZ = True
+    if NPZ:
+        npz_directory = "/scratch/10029/jgaucin/gns-mpm-ls6/gns/gns-samples/Sand/dataset"
+        # Initialize instance of data handler using base directory {npz_directory}
+        handler = TrajectoryDataHandler(npz_directory)
 
-    # Inspect a specific .npz file
-    #handler.inspect_npz_file("train.npz")
-
-    # Merge trajectories into a single .npz file
-    # handler.merge_trajectories("train.npz", num_trajectories=10)
-
-    # Calculate and save metadata
-    #handler.calc_metadata("metadata", num_trajectories=100)
-    # Necessary metadata (9):
-    # {"bounds","sequence_length", "default_connectivity_radius","dim", "dt", "vel_mean", "vel_std", "acc_mean", "acc_std"}
-    # Note: In GNS train.py sequence_length not necessary but recommended and dt is not necessary, only describing MPM simulation timesteps.
-    Downsample = False
-    PC_Directory = "/scratch/10029/jgaucin/gns-mpm-ls6/point-e/generated_pc"
-    pcdh = PointcloudDataHandler(PC_Directory)
-    pc_name = "red_motor0.ply"
-    pcdh.inspect_pointcloud(pc_name)
-    if Downsample:
-        pc_name = pcdh.downsample_ply(pc_name)
-    domain = [[0.1,0.9],[0.1,0.9],[0.1,0.9]]
-    output_path = f"/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2/{pc_name}"
-    pcdh.preprocess_pointcloud(pc_name, output_path, domain, 0.6, True)
+        # Inspect specific .npz files
+        print("Inspecting train.npz")
+        handler.inspect_npz_file("train.npz")
+        print("Inspecting test.npz")
+        handler.inspect_npz_file("test.npz")
+        print("Inspecting valid.npz")
+        handler.inspect_npz_file("valid.npz")
+        
+        # Necessary metadata (9):
+        # {"bounds","sequence_length", "default_connectivity_radius","dim", "dt", "vel_mean", "vel_std", "acc_mean", "acc_std"}
+        # Note: In GNS train.py sequence_length not necessary but recommended and dt is not necessary, only describing MPM simulation timesteps.
+    PC = False
+    if PC:
+        Downsample = False
+        PC_Directory = "/scratch/10029/jgaucin/gns-mpm-ls6/point-e/generated_pc"
+        pcdh = PointcloudDataHandler(PC_Directory)
+        pc_name = "red_motor0.ply"
+        pcdh.inspect_pointcloud(pc_name)
+        if Downsample:
+            pc_name = pcdh.downsample_ply(pc_name)
+        domain = [[0.1,0.9],[0.1,0.9],[0.1,0.9]]
+        output_path = f"/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2/{pc_name}"
+        pcdh.preprocess_pointcloud(pc_name, output_path, domain, 0.6, True)

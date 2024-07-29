@@ -1,5 +1,5 @@
 {
-    "save_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc_motor_up",
+    "save_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc_m_upscale",
     "id_range": [
         0,
         1
@@ -95,28 +95,43 @@
             "mass":  { 
                 "cubes": [
                     [0.11,
+                    0.2,
+                    0.12,
+                    0.4,
+                    0.6,
+                    0.5],
+                    [1.5,
+                    0.2,
+                    1.5,
                     0.3,
-                    0.11,
-                    0.3,
-                    0.11,
-                    0.3]
+                    0.6,
+                    0.3
+                    ]
                     ],
                 "velocity_for_cubes": [
-                    [1.0,
+                    [1.5,
                     1.0,
-                    1.5]
+                    0.5],
+                    [-1.5,
+                    1.0,
+                    0.5]
                 ]
                 },
                 "obstacles": [
                     {
-                        "pc_path": "/scratch/10029/jgaucin/gns-mpm-ls6/point-e/generated_pc/red_motor_size_up_rm.ply",
+                        "pc_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_red_motor_latest/red_m_frame_final.ply",
                         "elastic": false,
                         "velocity_for_obstacle": [0.0, 0.0, 0.0]
                     },
                     {
-                        "pc_path": "/scratch/10029/jgaucin/gns-mpm-ls6/point-e/generated_pc/red_motor_size_up_tire.ply",
+                        "pc_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_red_motor_latest/red_m_tires.ply",
                         "elastic": true,
-                        "velocity_for_obstacle": [0.0,0.0,0.0]
+                        "velocity_for_obstacle": [0.0, 0.0, 0.0]
+                    },
+                    {
+                        "pc_path": "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_red_motor_latest/red_m_rims.ply",
+                        "elastic": false,
+                        "velocity_for_obstacle": [0.0, 0.0, 0.0]
                     }
                 ]    
             }

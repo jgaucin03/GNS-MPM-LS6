@@ -49,7 +49,7 @@ def save_point_cloud_as_ply(point_cloud, filename):
     ply = PlyData([PlyElement.describe(vertices, 'vertex')], text=True)
     ply.write(filename + '.ply')
 
-def main(prompt, output_filename, output_format='npz'):
+def main(prompt, output_filename, output_format='ply'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     print('Creating base model...')

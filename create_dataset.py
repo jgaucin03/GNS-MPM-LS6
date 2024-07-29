@@ -41,7 +41,7 @@ if __name__ == "__main__":
     f = open(input_path)
     inputs = json.load(f)
     output_dir = inputs['save_path'] # Made the save path the output directory
-    num_traject = inputs['id_range'][1]
+    num_traject = inputs["id_range"][1] - inputs["id_range"][0]
     f.close()
     
     ## Create the dataset with MPM
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     # handler.inspect_npz_file("test.npz")
 
     # Merge trajectories (multiple .npz files) into a single .npz file
-    handler.merge_trajectories(f"{args.mode}.npz", num_trajectories=100)
+    handler.merge_trajectories(f"{args.mode}.npz", num_trajectories=num_traject)
     
     # Inspect the newly merged and created train.npz file
     handler.inspect_npz_file(f"{args.mode}.npz")
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     # Metadata file for the training dataset
     if args.mode == 'train':
         # Calculate and create metadata.json file
-        handler.create_metadata("metadata", num_trajectories=100)
+        handler.create_metadata("metadata", num_trajectories=num_traject)
         
     # Notes: Necessary metadata (9):
     # {"bounds","sequence_length", "default_connectivity_radius","dim", "dt", "vel_mean", "vel_std", "acc_mean", "acc_std"}
