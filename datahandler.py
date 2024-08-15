@@ -3,14 +3,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 from tqdm import tqdm
-import open3d as o3d
+#import pickle
+#import torch
+#import open3d as o3d
 
 class TrajectoryDataHandler:
-    def __init__(self, npz_directory):
-        self.npz_directory = npz_directory
+    def __init__(self, directory):
+        self.directory = directory
 
     def load_npz(self, file_path):
         return np.load(file_path, allow_pickle=True)
+    
+    def load_pkl(self, file_path):
+        """Load data from a .pkl file."""
+        with open(file_path, 'rb') as file:
+            data = pickle.load(file)
+        return data
 
     def inspect_trajectory(self, data, key):
         trajectory_data = data[key]
@@ -37,7 +45,7 @@ class TrajectoryDataHandler:
         return n_particles
 
     def inspect_npz_file(self, file_name):
-        file_path = os.path.join(self.npz_directory, file_name)
+        file_path = os.path.join(self.directory, file_name)
         data = self.load_npz(file_path)
 
         total_samples = 0 # Total samples in data_loader.py is the number of particles across each trajectory not counting input sequence length
@@ -58,18 +66,43 @@ class TrajectoryDataHandler:
         plt.title('Number of Particles in Each Trajectory')
         plt.grid(True)
         plt.show() """
+        
+    def inspect_pkl_file(self, file_name):
+        """Inspect the keys and their types in a .pkl file."""
+        file_path = os.path.join(self.directory, file_name)
+        data = self.load_pkl(file_path)
+
+        if not isinstance(data, dict):
+            print("Unexpected data structure in .pkl file")
+            return
+
+        # Display keys and their types
+        print("Keys and their types in the .pkl file:")
+        for key, value in data.items():
+            print(f"Key: {key}, Type: {type(value)}")
+            if key == 'particle_types':
+                print(value)
+    
+    def convert_pkl_to_npz(self, pkl_path, npz_path):
+        data = self.load_pkl(pkl_path)
+        # Convert PyTorch tensors to NumPy arrays and save as .npz
+        converted_data = {key: value.cpu().numpy() if isinstance(value, torch.Tensor) else value
+                        for key, value in data.items()}
+        
+        # Save as .npz file
+        np.savez(npz_path, **converted_data)
 
     def merge_trajectories(self, output_file_name, num_trajectories=10):
         combined_trajectories = {}
 
         for i in range(num_trajectories):
-            file_path = os.path.join(self.npz_directory, f"trajectory{i}.npz")
+            file_path = os.path.join(self.directory, f"trajectory{i}.npz")
             with self.load_npz(file_path) as data:
                 key = f"trajectory{i}"
                 positions, particle_types = data[key]
                 combined_trajectories[f"simulation_trajectory_{i}"] = (positions, particle_types)
 
-        output_file = os.path.join(self.npz_directory, output_file_name)
+        output_file = os.path.join(self.directory, output_file_name)
         print("Compressing npz...")
         np.savez_compressed(output_file, **combined_trajectories)
         print(f"Combined trajectories saved to {output_file}")
@@ -94,7 +127,7 @@ class TrajectoryDataHandler:
             data_name = f"trajectory{i}"
             # Not necessary to keep track of this for metadata
             # data_names.append(data_name)
-            npz_path = os.path.join(self.npz_directory, f"{data_name}.npz")
+            npz_path = os.path.join(self.directory, f"{data_name}.npz")
             data = self.load_npz(npz_path)
             for simulation_id, trajectory in data.items():
                 trajectories[f"simulation_trajectory_{i}"] = (trajectory)
@@ -162,7 +195,7 @@ class TrajectoryDataHandler:
             "nparticles_per_cell": nparticles_per_cell,
         }
 
-        metadata_file_path = os.path.join(self.npz_directory, f"{output_file_name}.json")
+        metadata_file_path = os.path.join(self.directory, f"{output_file_name}.json")
         # Open the metadata json file, make it if it doesn't exist
         with open(metadata_file_path, "w") as fp:
             json.dump(metadata, fp)
@@ -375,7 +408,9 @@ class PointcloudDataHandler:
     
 # Example usage
 if __name__ == "__main__":
-    NPZ = True
+    NPZ = False
+    PC = False
+    PKL = False
     if NPZ:
         npz_directory = "/scratch/10029/jgaucin/gns-mpm-ls6/gns/gns-samples/Sand/dataset"
         # Initialize instance of data handler using base directory {npz_directory}
@@ -392,8 +427,7 @@ if __name__ == "__main__":
         # Necessary metadata (9):
         # {"bounds","sequence_length", "default_connectivity_radius","dim", "dt", "vel_mean", "vel_std", "acc_mean", "acc_std"}
         # Note: In GNS train.py sequence_length not necessary but recommended and dt is not necessary, only describing MPM simulation timesteps.
-    PC = False
-    if PC:
+    elif PC:
         Downsample = False
         PC_Directory = "/scratch/10029/jgaucin/gns-mpm-ls6/point-e/generated_pc"
         pcdh = PointcloudDataHandler(PC_Directory)
@@ -404,3 +438,10 @@ if __name__ == "__main__":
         domain = [[0.1,0.9],[0.1,0.9],[0.1,0.9]]
         output_path = f"/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc2/{pc_name}"
         pcdh.preprocess_pointcloud(pc_name, output_path, domain, 0.6, True)
+    
+    elif PKL:
+        PKL_Directory = "/scratch/10029/jgaucin/gns-mpm-ls6/gns/gns-samples/WaterBarrier/rollout"
+        handler = TrajectoryDataHandler(PKL_Directory)
+        # Inspect the .pkl file
+        print("Converting pkl to npz")
+        handler.convert_pkl_to_npz("/scratch/10029/jgaucin/gns-mpm-ls6/gns/gns-samples/WaterBarrier/rollout/rollout_ex0.pkl", "/scratch/10029/jgaucin/gns-mpm-ls6/taichi_mpm_water/test_pc_reservoir/gns_reservoir_rollout.npz")

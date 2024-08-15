@@ -103,7 +103,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate a point cloud from a text prompt using point-e.')
     parser.add_argument('--prompt', type=str, required=True, help='The text prompt to generate the point cloud.')
     parser.add_argument('--output_filename', type=str, required=True, help='The output file to save the point cloud.')
-    parser.add_argument('--format', type=str, choices=['npz', 'obj', 'ply'], default='npz', help='The output file format (default: npz).')
+    parser.add_argument('--format', type=str, choices=['npz', 'obj', 'ply'], default='ply', help='The output file format (default: ply).')
 
     args = parser.parse_args()
     main(args.prompt, args.output_filename, args.format)
